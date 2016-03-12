@@ -1,0 +1,49 @@
+apply plugin: 'java'
+
+repositories {
+    jcenter()
+}
+dependencies {
+    
+}
+ext.configFile = file "build.properties"
+configFile.withReader {
+    def prop = new Properties()
+    prop.load(it)
+    project.ext.config = new ConfigSlurper().parse prop
+}
+
+version = config.main_version + "-" + config.state_version + "-" + config.build_number
+group= config.package_group
+archivesBaseName = config.mod_name
+
+jar {
+	dependsOn "incrementBuildNumber"
+	manifest {
+		attributes 'Main-Class': 'eu.hostcode.discordTest.Main'
+	}
+
+}
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+}
+task deobfJar(type: Jar) {
+    from sourceSets.main.output
+    classifier = 'deobf'
+}
+tasks.build.dependsOn sourceJar, javadocJar, deobfJar
+
+
+task("incrementBuildNumber") {
+	doFirst {
+		config.build_number = (config.build_number.toString().toInteger()) + 1
+		configFile.withWriter {
+			config.toProperties().store(it, "")
+		}
+	}
+}
